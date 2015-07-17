@@ -59,7 +59,7 @@
 
         if (el && !update) {
             this.data = el.offset();
-            this.data.width = el[0].scrollWidth;
+            this.data.width = el.width();
             this.data.height = el[0].scrollHeight;
         }
 
