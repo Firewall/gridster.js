@@ -1,4 +1,4 @@
-/*! gridster.js - v0.6.10 - 2015-07-17
+/*! gridster.js - v0.6.10 - 2015-08-05
 * https://dsmorse.github.io/gridster.js/
 * Copyright (c) 2015 ducksboard; Licensed MIT */
 
@@ -55,7 +55,7 @@
 
         if (el && !update) {
             this.data = el.offset();
-            this.data.width = el.width();
+            this.data.width = el[0].scrollWidth;
             this.data.height = el[0].scrollHeight;
         }
 
@@ -2388,9 +2388,13 @@
 		if (this.$player === null) {
 			return false;
 		}
+		
+		var margin_sides = this.options.widget_margins[0];
+
+		var placeholder_column = this.$preview_holder.attr('data-col');
 
 		var abs_offset = {
-			left: ui.position.left + this.baseX,
+			left: ui.position.left + this.baseX - (margin_sides * placeholder_column),
 			top: ui.position.top + this.baseY
 		};
 
@@ -2438,8 +2442,12 @@
 	fn.on_stop_drag = function (event, ui) {
 		this.$helper.add(this.$player).add(this.$wrapper)
 				.removeClass('dragging');
+				
+		var margin_sides = this.options.widget_margins[0];
 
-		ui.position.left = ui.position.left + this.baseX;
+		var placeholder_column = this.$preview_holder.attr('data-col');
+
+		ui.position.left = ui.position.left + this.baseX - (margin_sides * placeholder_column);
 		ui.position.top = ui.position.top + this.baseY;
 		this.colliders_data = this.collision_api.get_closest_colliders(
 				ui.position);
@@ -4579,7 +4587,7 @@
 	 */
 	fn.get_responsive_col_width = function () {
 		var cols = this.cols || this.options.max_cols;
-		return (this.$el.width() - ((cols + 1) * this.options.widget_margins[0])) / cols;
+		return (this.$el[0].scrollWidth - ((cols + 1) * this.options.widget_margins[0])) / cols;
 	};
 
 	/**
