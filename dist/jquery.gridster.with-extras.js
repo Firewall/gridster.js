@@ -1299,13 +1299,18 @@
 	 * @param {Array} [max_size] max_size Maximun size (in units) for width and height.
 	 * @param {Array} [min_size] min_size Minimum size (in units) for width and height.
 	 * @param {Function} [callback] Function executed after the widget is shown.
+     * @param {boolean} [resizable] Is this widget resizable?
 	 * @return {HTMLElement} Returns the jQuery wrapped HTMLElement representing.
 	 *  the widget that was just created.
 	 */
-	fn.add_widget = function (html, size_x, size_y, col, row, max_size, min_size, callback) {
+	fn.add_widget = function (html, size_x, size_y, col, row, max_size, min_size, callback, resizable) {
 		var pos;
 		size_x || (size_x = 1);
 		size_y || (size_y = 1);
+
+        if (typeof(resizable) !== 'boolean') {
+            resizable = true;
+        }
 
 		if (!col && !row) {
 			pos = this.next_position(size_x, size_y);
@@ -1322,6 +1327,7 @@
 		}
 
 		var $w = $(html).attr({
+            'data-resizable': resizable,
 			'data-col': pos.col,
 			'data-row': pos.row,
 			'data-sizex': size_x,
@@ -1358,7 +1364,7 @@
 		}
 
 		this.options.show_element.call(this, $w, callback);
-		
+
 		return $w;
 	};
 
@@ -1890,7 +1896,7 @@
 		$nexts.not(exclude).each($.proxy(function(i, widget) {
 			this.move_widget_up( $(widget), size_y );
 		}, this));
-		
+
 		this.set_dom_grid_height();
 
 		return this;
@@ -2088,6 +2094,7 @@
 		var wgd = isDOM ? this.dom_to_coords($el) : $el;
 		var posChanged = false;
 		isDOM || ($el = wgd.el);
+        var resizable = $el.attr('data-resizable');
 
 		var empty_upper_row = this.can_go_widget_up(wgd);
 		if (this.options.shift_widgets_up && empty_upper_row) {
@@ -2118,7 +2125,7 @@
 		this.add_to_gridmap(wgd, $el);
 		this.update_widget_dimensions($el, wgd);
 
-		this.options.resize.enabled && this.add_resize_handle($el);
+		this.options.resize.enabled && (resizable === "true") && this.add_resize_handle($el);
 
 		return posChanged;
 	};
@@ -2388,7 +2395,7 @@
 		if (this.$player === null) {
 			return false;
 		}
-		
+
 		var margin_sides = this.options.widget_margins[0];
 
 		var placeholder_column = this.$preview_holder.attr('data-col');
@@ -2442,7 +2449,7 @@
 	fn.on_stop_drag = function (event, ui) {
 		this.$helper.add(this.$player).add(this.$wrapper)
 				.removeClass('dragging');
-				
+
 		var margin_sides = this.options.widget_margins[0];
 
 		var placeholder_column = this.$preview_holder.attr('data-col');
@@ -2626,6 +2633,13 @@
 	 * @param {Object} ui A prepared ui object with useful drag-related data
 	 */
 	fn.on_resize = function (event, ui) {
+        var helper_class = ui.$helper.attr('class');
+        var direction = '';
+        // Get the direction from the css class
+        if (helper_class.match(/gs-resize-handle-\w+/i) !== null) {
+            direction = helper_class.match(/gs-resize-handle-\w+/i)[0].replace('gs-resize-handle-', '')
+        }
+
 		var rel_x = (ui.pointer.diff_left);
 		var rel_y = (ui.pointer.diff_top);
 		var wbd_x = this.is_responsive() ? this.get_responsive_col_width() : this.options.widget_base_dimensions[0];
@@ -2639,8 +2653,28 @@
 		var autogrow = this.options.max_cols === Infinity;
 		var width;
 
-		var inc_units_x = Math.ceil((rel_x / (wbd_x + margin_x * 2)) - 0.2);
-		var inc_units_y = Math.ceil((rel_y / (wbd_y + margin_y * 2)) - 0.2);
+        switch(direction) {
+            case 'se':
+                var inc_units_x = Math.ceil((rel_x / (wbd_x + margin_x * 2)) - 0.2);
+                var inc_units_y = Math.ceil((rel_y / (wbd_y + margin_y * 2)) - 0.2);
+                break;
+            case 'e':
+                var inc_units_x = Math.ceil((rel_x / (wbd_x + margin_x * 2)) - 0.2);
+                var inc_units_y = 0;
+                break;
+            case 's':
+                var inc_units_x = 0;
+                var inc_units_y = Math.ceil((rel_y / (wbd_y + margin_y * 2)) - 0.2);
+                break;
+            default:
+                // @Matt 26/08/15 (2.7.0)
+                // Gridster calculates it's position based on top left corner so if we want
+                // to have the widget resizable from the 'w' and 'n' we will need to move this widget.
+                // This will add new problems. We can decide to this later if we want to do this.
+                var inc_units_x = Math.ceil((rel_x / (wbd_x + margin_x * 2)) - 0.2);
+                var inc_units_y = Math.ceil((rel_y / (wbd_y + margin_y * 2)) - 0.2);
+                break;
+        }
 
 		var size_x = Math.max(1, this.resize_initial_sizex + inc_units_x);
 		var size_y = Math.max(1, this.resize_initial_sizey + inc_units_y);
