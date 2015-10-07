@@ -1230,8 +1230,8 @@
 			}, this), 0);
 		}
 
-		$window.bind('resize.gridster', throttle(
-				$.proxy(this.recalculate_faux_grid, this), 200));
+		$window.bind('resize.gridster', debounce(
+				$.proxy(this.recalculate_faux_grid, this), 300));
 	};
 
 
